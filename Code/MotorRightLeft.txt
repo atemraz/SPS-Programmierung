@@ -1,0 +1,53 @@
+VAR_INPUT
+    Stop  : BOOL;   // Stop motor
+    Left  : BOOL;   // Move motor left
+    Right : BOOL;   // Move motor right
+END_VAR
+
+VAR_OUTPUT
+    MotorLeft  : BOOL;   // Motor left direction output
+    MotorRight : BOOL;   // Motor right direction output
+END_VAR
+
+VAR
+    tmp     : INT;     // Temporary variable
+    left_t  : R_TRIG;  // Rising edge detector for Left
+    right_t : R_TRIG;  // Rising edge detector for Right
+END_VAR
+
+
+#left_t(CLK := #Left);
+#right_t(CLK := #Right);
+CASE #tmp OF
+    0:
+        #MotorLeft := 0;
+        #MotorRight := 0;
+         
+            
+        IF #left_t.Q AND NOT #Stop THEN
+            #tmp := 1;
+        ELSIF #right_t.Q AND NOT #Stop THEN
+            #tmp := 2;
+           
+        
+        END_IF;
+       
+    1:
+        IF #Stop THEN
+            #tmp := 0;
+        ELSE
+            #MotorLeft := 1;
+        END_IF;
+       
+            
+            
+    2:
+        IF #Stop THEN
+            #tmp := 0;
+        ELSE
+            #MotorRight := 1;
+        END_IF;
+        
+END_CASE;
+
+        
