@@ -27,6 +27,7 @@ This repository showcases selected projects from my SPS programming lab at Hochs
 - **Siemens Comfort Panel HMI**
 ## How to Open the Project
 1. Install Siemens TIA Portal V19.
-2. Open project from `.ap19` file.
+2. Download '.zip' file.
+3. Open project from `.ap19` file.
 
 
