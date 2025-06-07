@@ -1,0 +1,34 @@
+VAR_INPUT
+    Schalter1 : BOOL;   // Switch 1
+    Schalter2 : BOOL;   // Switch 2
+    AnaIn     : INT;    // Analog input (e.g., from potentiometer)
+END_VAR
+
+VAR_OUTPUT
+    AnaOut    : INT;    // Analog output (e.g., to motor control)
+    DigiOut   : BOOL;   // Digital output (e.g., motor start signal)
+END_VAR
+
+VAR_TEMP
+    tmp       : INT;    // Temporary variable for calculations
+END_VAR
+
+
+IF (#"Schalter 1" AND #"Schalter 2") THEN
+    #tmp := 2 * LIMIT(MN := 0, IN := #AnaIn, MX := 13824);
+    #AnaOut := #tmp;
+    
+END_IF;
+    
+
+IF (NOT #"Schalter 1" AND #"Schalter 2") THEN
+    #tmp := 27648;
+    #AnaOut := #tmp;
+END_IF;
+IF (#"Schalter 1" AND NOT #"Schalter 2") THEN
+    #tmp := LIMIT(MN := 0, IN := #AnaIn, MX := 27824);
+    #AnaOut := #tmp;
+END_IF;
+IF (#"Schalter 1" OR #"Schalter 2") THEN
+    #DigiOut := 1;
+END_IF;
