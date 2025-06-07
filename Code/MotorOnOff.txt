@@ -1,0 +1,36 @@
+VAR_INPUT
+    Ein : BOOL;      // Start motor
+    Aus : BOOL;      // Stop motor
+END_VAR
+
+VAR_OUTPUT
+    MotorOn : BOOL;  // Motor running status
+END_VAR
+
+VAR
+    Rtrig_Ein : R_TRIG; // Rising edge detector for Ein
+    Rtrig_Aus : R_TRIG; // Rising edge detector for Aus
+    Run       : BOOL;   // Motor running flag
+    InitDone  : BOOL;   // Initialization done flag
+END_VAR
+
+
+#Rtrig_Ein(CLK := #Ein);
+#Rtrig_Aus(CLK := #Aus);
+
+
+
+IF NOT #InitDone THEN
+    #Run := FALSE;
+    #InitDone := TRUE;
+END_IF;
+
+
+IF (#Rtrig_Aus.Q OR #Aus) THEN
+    #Run := FALSE;
+ELSIF #Rtrig_Ein.Q AND NOT #Aus THEN
+    #Run := TRUE;
+END_IF;
+
+
+#MotorOn := #Run;
