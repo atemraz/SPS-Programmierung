@@ -1,0 +1,54 @@
+VAR_INPUT
+    Start  : BOOL;    // Start command
+    Stop   : BOOL;    // Stop command
+    AnaIN  : WORD;    // Analog input (Target speed input)
+END_VAR
+
+VAR_OUTPUT
+    DigiOut : BOOL;   // Digital output (e.g., motor enable)
+    AnaOut  : WORD;   // Analog output (Motor speed output)
+END_VAR
+
+VAR
+    Timer    : TON_TIME; // Timer for ramp-up
+    rampVal  : REAL;     // Current ramp value
+    target   : REAL;     // Target speed
+    start_q  : R_TRIG;   // Rising edge detector for Start
+    stop_q   : R_TRIG;   // Rising edge detector for Stop
+    RunActive: BOOL;     // Motor running flag
+END_VAR
+
+
+#start_q(CLK := #Start);
+#stop_q(CLK := #Stop);
+IF #start_q.Q THEN
+    #RunActive := TRUE;
+END_IF;
+
+IF #stop_q.Q THEN
+    #RunActive := FALSE;
+END_IF;
+IF NOT #RunActive THEN
+    #Timer(IN := false,
+           PT := T#5s);
+    #rampVal := 0.0;
+    #AnaOut := 0;
+    #DigiOut := FALSE;
+    RETURN;
+END_IF;
+IF #RunActive THEN
+    #Timer(IN := TRUE,
+           PT := T#5s);
+    #DigiOut := TRUE;
+    #target := INT_TO_REAL(WORD_TO_INT(#AnaIN));
+    IF #Timer.Q THEN
+        #rampVal := #target;
+    ELSE
+        #rampVal := #target * INT_TO_REAL(TIME_TO_INT(#Timer.ET)) / 5000.0;
+    END_IF;
+    IF #rampVal > #target THEN
+        #rampVal := #target;
+    END_IF;
+    #AnaOut := INT_TO_WORD(REAL_TO_INT(#rampVal));
+END_IF;
+
