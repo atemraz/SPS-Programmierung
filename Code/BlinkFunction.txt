@@ -1,0 +1,28 @@
+FUNCTION_BLOCK Blinken
+
+VAR_INPUT
+    AnaIn : INT;      // Analog Input (0..27648)
+END_VAR
+
+VAR_OUTPUT
+    LED_OUT : BOOL;   // LED Output
+END_VAR
+
+
+    IF (#AnaIn > 0 AND #AnaIn <= 6900) THEN
+        // Blink with 1 Hz clock signal
+        #LED_OUT := "Clock_1Hz";
+
+    ELSIF (#AnaIn > 6900 AND #AnaIn <= 13824) THEN
+        // Blink with 2 Hz clock signal
+        #LED_OUT := "Clock_2Hz";
+
+    ELSIF (#AnaIn > 13824 AND #AnaIn <= 20736) THEN
+        // Blink with 10 Hz clock signal
+        #LED_OUT := "Clock_10Hz";
+
+    ELSIF (#AnaIn > 20736) THEN
+        // LED stays permanently ON
+        #LED_OUT := TRUE;
+    END_IF;
+
