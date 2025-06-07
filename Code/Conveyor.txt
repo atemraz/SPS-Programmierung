@@ -1,0 +1,131 @@
+VAR_INPUT
+    Start : BOOL;    // Start signal
+    Stop  : BOOL;    // Stop signal
+    LB1   : BOOL;    // Light barrier 1
+    LB2   : BOOL;    // Light barrier 2
+    Speed : WORD;    // Speed setpoint
+END_VAR
+
+VAR_OUTPUT
+    LED_On      : BOOL;   // LED On signal
+    LED_Warn    : BOOL;   // Warning LED
+    LED_LB1     : BOOL;   // LED Light barrier 1
+    LED_LB2     : BOOL;   // LED Light barrier 2
+    MotorStart  : BOOL;   // Motor start signal
+    MotorSpeed  : WORD;   // Motor speed output
+    MotorSpeed2 : REAL;   // Motor speed (real) for ramping
+END_VAR
+
+VAR
+    start_q   : R_TRIG;    // Rising edge detector for Start
+    stop_q    : R_TRIG;    // Rising edge detector for Stop
+    Step      : INT;       // Step counter/state
+    Timer     : TON_TIME;  // Timer 1
+    Timer2    : TON_TIME;  // Timer 2
+    FirstScan : BOOL;      // First scan flag
+END_VAR
+
+VAR_TEMP
+    rampVal : REAL;        // Ramp value for motor speed
+    target  : REAL;        // Target speed
+END_VAR
+
+
+
+#start_q(CLK := #Start);
+#stop_q(CLK := #Stop);
+IF NOT #FirstScan THEN
+    #Step := 0;
+    #FirstScan := TRUE;
+END_IF;
+
+IF #LB1 THEN
+    #LED_LB1 := TRUE;
+ELSE
+    #LED_LB1 := FALSE;
+END_IF;
+IF #LB2 THEN
+    #LED_LB2 := TRUE;
+ELSE
+    #LED_LB2 := FALSE;
+END_IF;
+IF #Stop OR #stop_q.Q THEN
+    #Step := 0;
+END_IF;
+
+REGION "Zustandsuebergaenge"
+    CASE #Step OF
+        0: //Stop
+            #LED_On := 0;
+            #MotorStart := 0;
+            #MotorSpeed := 0;
+            #LED_LB1 := 0;
+            #LED_LB2 := 0;
+            #LED_Warn := 0;
+            IF #start_q.Q THEN
+                #Step := 1;
+            END_IF;
+        1://Start
+            #LED_On := 1;
+            IF #LB1 AND NOT #LB2 THEN
+                #Timer(IN := False,
+                       PT := T#0s);
+                #Step := 2;
+                #LED_LB1 := 1;
+                #LED_LB2 := 0;
+            END_IF;
+        2://Warning
+            #Timer(IN := (#Step = 2),
+                   PT := T#5s);
+            IF NOT #Timer.Q THEN
+                #LED_Warn := "Clock_2Hz";
+            ELSE
+                #Timer2(IN := False,
+                        PT := T#0s);
+                #Step := 3;
+            END_IF;
+            IF #LB2 THEN
+                #Step := 5;
+            END_IF;
+            
+        3://sanf Anlauf
+            #Timer2(IN := (#Step = 3),
+                    PT := T#5s);
+            #LED_Warn := 1;
+            #MotorStart := TRUE;
+            #target := INT_TO_REAL(WORD_TO_INT(#Speed));
+            IF #Timer2.Q THEN
+                #rampVal := #target;
+                #Step := 4;
+            ELSE
+                #rampVal := #target * INT_TO_REAL(TIME_TO_INT(#Timer2.ET)) / 5000.0;
+            END_IF;
+            #MotorSpeed := INT_TO_WORD(REAL_TO_INT(#rampVal));
+           
+            IF #LB2 THEN
+                #Step := 5;
+            END_IF;
+        4://konst Geschwindigkeit
+            #MotorSpeed := #Speed;
+            #LED_Warn := 0;
+            IF #LB2 THEN
+                #LED_LB2 := 1;
+                #Step := 5;
+            END_IF;
+        5://Motor Stopp
+            #MotorSpeed := 0;
+            #MotorStart := 0;
+            #LED_Warn := 0;
+            IF #LB1 AND NOT #LB2 THEN
+                #Timer(IN := False,
+                       PT := T#0s);
+                #Step := 2;
+            END_IF;
+    END_CASE;
+END_REGION
+
+
+#MotorSpeed2 := WORD_TO_INT(#MotorSpeed) / 32767.0 * 100.0;
+
+
+
